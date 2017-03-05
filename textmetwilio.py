@@ -18,7 +18,7 @@ from termcolor import colored, cprint # used to print colors
 # https://github.com/search?p=3&q=account_sid+auth_token&ref=searchresults&type=Code&utf8=%E2%9C%93
 ####################################################################################################
 
-parser = argparse.ArgumentParser(description='This program sends text messages to people using by using email.')
+parser = argparse.ArgumentParser(description='This program sends text messages to people by using email.')
 parser.add_argument('phone', action='store', help='Phone number to send text message to')
 parser.add_argument('-m', action='store', metavar = '"text message"', help='Text message')
 
