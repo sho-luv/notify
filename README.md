@@ -14,10 +14,10 @@ positional arguments:
 optional arguments:
   -h, --help         show this help message and exit
   -m "text message"  Text message
-root@Id10t:~/work/mydev/notify# 
-root@Id10t:~/work/mydev/notify# python textmetwilio.py 2108183364
+root@Id10t:~/# 
+root@Id10t:~/# python textmetwilio.py 0000000000
 AT&T Wireless
-root@Id10t:~/work/mydev/notify# python textmetwilio.py 2108183364 -m "Hi"
-[+] Mar 05 04:40:14  Message sent to 2108183364 on the AT&T Wireless network
+root@Id10t:~/# python textmetwilio.py 0000000000 -m "Hi"
+[+] Mar 05 04:40:14  Message sent to 0000000000 on the AT&T Wireless network
 root@Id10t:~/work/mydev/notify# 
 ```
