@@ -6,7 +6,7 @@
 python textmetwilio.py 
 usage: textmetwilio.py [-h] [-m "text message"] phone
 
-This program sends text messages to people using by using email.
+This program sends text messages to people by using email.
 
 positional arguments:
   phone              Phone number to send text message to
