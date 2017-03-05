@@ -9,12 +9,14 @@ import subprocess # used to call sendEmail because I didn't want to use python's
 from termcolor import colored, cprint # used to print colors
 
 # python -m pdb textmetwilio.py # debug program
-###############################################
+####################################################################################################
 # by sho.luv:
 # This progam uses carriers gateways to 
 # to convert emails to sms messages to phone numbers
 #
-###############################################
+# Interesting search:
+# https://github.com/search?p=3&q=account_sid+auth_token&ref=searchresults&type=Code&utf8=%E2%9C%93
+####################################################################################################
 
 parser = argparse.ArgumentParser(description='This program sends text messages to people using by using email.')
 parser.add_argument('phone', action='store', help='Phone number to send text message to')
@@ -43,7 +45,7 @@ if not account_sid or not auth_token:
 # SMTP settings server and credentials
 #################################################################
 smtp_server = 'mail.smtp.com'	# gmail smtp: smtp.gmail.com					
-smtp_port = '2525'				# gmail port: 587
+smtp_port = '2525'		# gmail port: 587
 email_from = 'your@computer.com'
 email_subject = 'Alert'
 username = ''    		# username
