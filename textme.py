@@ -53,8 +53,8 @@ def send_email(number, carrier_email, message):
 	smtp_server = 'mail.smtp.com'	# gmail smtp: smtp.gmail.com								
 	smtp_port = '2525'				# gmail port: 587
 	email_subject = 'Alert'
-	username = 'sho.luv'    		# username
-	password = 'TwGc85vr0F5_b7ErQW-ss0hrJ4q6Tb3HloeCL2rx' # password 
+	username = ''    		# username
+	password = '' # password 
 	#password = '' # password 
 	#################################################################
 	if not username or not password:
