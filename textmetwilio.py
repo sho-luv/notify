@@ -1,4 +1,5 @@
-# /usr/bin/env python
+#!/usr/bin/python2.7
+
 import argparse # Parser for command-line options, arguments and sub-commands
 import smtplib	# SMTP protocol client
 from twilio.rest.lookups import TwilioLookupsClient # twilio api used to enumerate carrier
@@ -9,14 +10,12 @@ import subprocess # used to call sendEmail because I didn't want to use python's
 from termcolor import colored, cprint # used to print colors
 
 # python -m pdb textmetwilio.py # debug program
-####################################################################################################
+###############################################
 # by sho.luv:
 # This progam uses carriers gateways to 
 # to convert emails to sms messages to phone numbers
 #
-# Interesting search:
-# https://github.com/search?p=3&q=account_sid+auth_token&ref=searchresults&type=Code&utf8=%E2%9C%93
-####################################################################################################
+###############################################
 
 parser = argparse.ArgumentParser(description='This program sends text messages to people by using email.')
 parser.add_argument('phone', action='store', help='Phone number to send text message to')
@@ -35,8 +34,8 @@ options = parser.parse_args()
 
 # Twilio Account information
 #################################################################
-account_sid = "" # stolen account_sid
-auth_token = ""	# stolen auth_token
+account_sid = "" # enter account_sid
+auth_token = ""	# enter auth_token
 #################################################################
 # check settings before trying to use
 if not account_sid or not auth_token:
@@ -45,12 +44,11 @@ if not account_sid or not auth_token:
 # SMTP settings server and credentials
 #################################################################
 smtp_server = 'mail.smtp.com'	# gmail smtp: smtp.gmail.com					
-smtp_port = '2525'		# gmail port: 587
+smtp_port = '2525'				# gmail port: 587
 email_from = 'your@computer.com'
 email_subject = 'Alert'
 username = ''    		# username
 password = '' # password 
-#password = '' # password 
 #################################################################
 # check settings before trying to use
 if not username or not password:
@@ -109,11 +107,20 @@ if is_valid_number(options.phone):
 			cprint(output[0:16], end='')	# print out date and timestamp of message sent
 			response = " Message sent to %s on the %s network" % (yellow_phone, color_carrier)
 			print(response)  
+			sys.exit(0)
 		else:
-				cprint("Sorry unable to send message...", 'red', attrs=['bold'])
+			cprint("Sorry unable to send message...", 'red', attrs=['bold'])
+			sys.exit(1)
+
+		client.messages.create(
+			to="options.phone",
+			from_="+14158141829",
+			body="Tomorrow's forecast in Financial District, San Francisco is Clear.",
+			media_url="https://climacons.herokuapp.com/clear.png",
+		)
 	else:
 		cprint(number.carrier['name'], 'green', attrs=['bold'])  # print out carrier information 
-        sys.exit(1)
+        sys.exit(0)
 else:
     cprint('[+] ', 'red', attrs=['bold'], end='')  # print success
     cprint("Sorry that phone number isn't valid ", end='')
