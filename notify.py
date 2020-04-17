@@ -1,8 +1,9 @@
-#!/usr/bin/python2.7
+#!/usr/bin/python
 
 # does not use twilio!
 # uses mail.smtp.com with creds
 
+import time
 import argparse # Parser for command-line options, arguments and sub-commands
 import smtplib	# SMTP protocol client
 import code # used for debugging with the command "code.interact(local=dict(globals(), **locals()))
@@ -13,6 +14,7 @@ import subprocess # used to call sendEmail because I didn't want to use python s
 from termcolor import colored, cprint
 
 # python -m pdb email-to-sms.py # debug program
+
 ######################
 #
 # This progam uses an email smtp to send email to sms messages
@@ -21,142 +23,227 @@ from termcolor import colored, cprint
 # simply send the message to all carriers in hopes they get it.
 #
 
-parser = argparse.ArgumentParser(description='This program sends text messages to people using by using email.')
-parser.add_argument('phone', action='store', metavar='phone',help="Phone number to send text message to.\n Phone number should have no spaces and be of format ##########")
-parser.add_argument('-m', action='store', metavar = '', help='"Text message"')
+class Watcher(object):
+    running = True
+    refresh_delay_secs = 1
 
-#group = parser.add_mutually_exclusive_group()
-group = parser.add_argument_group('carrier')
+    # Constructor
+    def __init__(self, watch_file, call_func_on_change=None, *args, **kwargs):
+        self._cached_stamp = 0
+        self.filename = watch_file
+        self.call_func_on_change = call_func_on_change
+        self.args = args
+        self.kwargs = kwargs
 
-group.add_argument('-att', action='store_true', help='Send text message to AT&T Wireles')
-group.add_argument('-cricket', action='store_true', help='Send text message to Cricket')
-group.add_argument('-google', action='store_true', help='Send text message to Google')
-group.add_argument('-sprint', action='store_true', help='Send text message to Sprint')
-group.add_argument('-tmobile', action='store_true',  help='Send text message to T-Mobile')
-group.add_argument('-verizon', action='store_true', help='Send text message to Verizon Wireless')
-group.add_argument('-all', action='store_true', help='Send text message to all networks')
+    # Look for changes
+    def look(self):
+        stamp = os.stat(self.filename).st_mtime
+        if stamp != self._cached_stamp:
+            self._cached_stamp = stamp
+            # File has changed, so do something...
 
-#code.interact(local=dict(globals(), **locals())) # debug
+            if self.call_func_on_change is None:
+                self.call_func_on_change = "Something"
+                msg = "Notification set to watch file: " + options.n
+                cprint('[+] ', 'green', attrs=['bold'], end='')  # print success
+                cprint(msg,'white') 
+            else:
+                send_email(options.phone, carrier_email, options.m)
 
-if len(sys.argv)==1:
-    parser.print_help()
-    sys.exit(1)
+    # Keep watching in a loop        
+    def watch(self):
+        while self.running:
+            try:
+                # Look for changes
+                time.sleep(self.refresh_delay_secs)
+                self.look()
+            except KeyboardInterrupt:
+                print('\nDone')
+                break
+            except FileNotFoundError as e:
+                # Action on file not found
+                #print(e)
+                print(e)
+                break
+            except:
+                print('Unhandled error: %s' % sys.exc_info()[0])
 
-options = parser.parse_args()
 
-def is_valid_number(number):
+def is_valid_number(phone_number):
+    if len(phone_number) != 12:
+        return False
+    for i in range(12):
+        if i in [3,7]:
+            if phone_number[i] != '-':
+                return False
+        elif not phone_number[i].isalnum():
+            return False
+    return True
+
+def checkvalidNumber(number):
     if len(number) != 10 and number.isdigit():
-	return False
+        return False
     else:
-	return True
+        return True
 
 def send_email(number, carrier_email, message):
 
-	# SMTP settings server and credentials
-	#################################################################
-	smtp_server = 'mail.smtp.com'	# gmail smtp: smtp.gmail.com								
-	smtp_port = '2525'				# gmail port: 587
-	from_email = 'your@computer.com'
-	email_subject = 'notify.py'
-	username = ''    		# username
-	password = '' # password 
-	#password = '' # password 
-	#################################################################
-	if not username or not password:
-		print "Please set SMTP settings inside %s before using..."%sys.argv[0]
-		sys.exit(1)
+    #main
+    email = "sendEmail -f %s -t %s%s -u %s "\
+            "-s %s:%s -o tls=no -xu %s -xp %s -m %s"\
+            % (from_email, number, carrier_email, email_subject, smtp_server, \
+            smtp_port, username, password, message)
+    try:
+        # call to os to run command and save output
+        output = subprocess.check_output(email, shell=True, universal_newlines=True) 
+    except Exception as e:
+        cprint('Email Send Error: ', 'red', end='')  # print out carrier information
+        print(e)
+        return False
 
-	email = "sendEmail -f %s -t %s%s -u %s "\
-		"-s %s:%s -o tls=no -xu %s -xp %s -m %s"\
-		% (from_email, number, carrier_email, email_subject, smtp_server, smtp_port, username, password, message)
-	try:
-		output = subprocess.check_output(email, shell=True) # call to os to run command and save ouput
-	except Exception, e:
-		cprint('Email Send Error: ', 'red', end='')  # print out carrier information 
- 		print str(e)
- 		return False
-
-	if 'successfully' in output:
-		cprint('[+] ', 'green', attrs=['bold'], end='')  # print success
-		cprint(output[0:16], end='')    # print out date and timestamp of message sent
-		response = " Message sent to %s on the %s network" % (yellow_phone, color_carrier)
-		print(response)
-		return True
-	else:
-		cprint("Sorry unable to send message...", 'red', attrs=['bold'])
-		return False
-
-if is_valid_number(options.phone):
-	# set the phone number color to yellow so it stands out in the output
-	yellow_phone = colored(options.phone, 'yellow')
-	# check to see if there is a message being sent
-
-	# check if any carriers are set to true
-	if True in vars(options).values():
-
-		if options.att or options.all:    # determine carrier email to send to and color output
-			carrier_email = '@txt.att.net'
-			color_carrier = colored("AT&T", 'blue')
-			if options.m is not None:
-				send_email(options.phone, carrier_email, options.m)
-			else:
-				carrier_email = colored(carrier_email, 'blue')
-				print"The %s gateway is: %s"%(color_carrier, carrier_email)
-		if options.verizon or options.all:
-			carrier_email = '@vtext.com'
-			color_carrier = colored("Verizon", 'red')
-			if options.m is not None:
-				send_email(options.phone, carrier_email, options.m)
-			else:
-				carrier_email = colored(carrier_email, 'red')
-				print"The %s gateway is: %s"%(color_carrier, carrier_email)
-		if options.tmobile or options.all:
-			carrier_email = '@tmomail.net'
-			color_carrier = colored("T-Mobile", 'magenta')
-			if options.m is not None:
-				send_email(options.phone, carrier_email, options.m)
-			else:
-				carrier_email = colored(carrier_email, 'magenta')
-				print"The %s gateway is: %s"%(color_carrier, carrier_email)
-		if options.sprint or options.all:
-			carrier_email = '@messaging.sprintpcs.com'
-			color_carrier = colored("Sprint", 'yellow')
-			if options.m is not None:
-				send_email(options.phone, carrier_email, options.m)
-			else:
-				carrier_email = colored(carrier_email, 'yellow')
-				print"The %s gateway is: %s"%(color_carrier, carrier_email)
-		if options.google or options.all:
-			carrier_email = '@txt.voice.google.com'
-			color_carrier = colored("Google", 'white')
-			if options.m is not None:
-				send_email(options.phone, carrier_email, options.m)
-			else:
-				carrier_email = colored(carrier_email, 'white')
-				print"The %s gateway is: %s"%(color_carrier, carrier_email)
-		if options.cricket or options.all:
-			carrier_email = '@sms.cricketwireless.net'
-			color_carrier = colored("Cricket", 'green')
-			if options.m is not None:
-				send_email(options.phone, carrier_email, options.m)
-			else:
-				carrier_email = colored(carrier_email, 'green')
-				print"The %s gateway is: %s"%(color_carrier, carrier_email)
-
-		# exit program normally
-		sys.exit(1)
-	#code.interact(local=dict(globals(), **locals())) # debug
-	elif options.m is not None:
-		cprint('Options Error: ', 'red', end='')  # print out carrier information 
-		print "The -m option requires a carrier to be set"
-		sys.exit(1)
-	else:
-		cprint('Usage Error: ', 'red', end='')  # print out carrier information 
-		print "Please choose carrier option"
-		sys.exit(1)
-else:
-    #cprint('[+] ', 'red', attrs=['bold'], end='')  # print success
-	cprint('Number Error: ', 'red', end='')  # print out carrier information 
-	cprint("Sorry that phone number is not in the correct format ex: 1234567890 ")
-	sys.exit(1)
+    if 'successfully' in output:
+        cprint('[+] ', 'green', attrs=['bold'], end='')  # print success
+        cprint(output[0:16], end='')    # print out date and timestamp of message sent
+        response = " Message sent to %s on the %s network" % (yellow_phone, color_carrier)
+        print(response)
+        return True
+    else:
+        cprint("Sorry unable to send message...", 'red', attrs=['bold'])
+        return False
+        
+if __name__ == "__main__":
+    # executes only if run as a script
     
+    # SMTP settings server and credentials
+    #################################################################
+    smtp_server = 'mail.smtp.com'	# gmail smtp: smtp.gmail.com								
+    smtp_port = '2525'				# gmail port: 587
+    from_email = 'your@computer.com'
+    email_subject = 'notify.py'
+    username = ''    		# username
+    password = '' # password 
+    #################################################################
+
+
+    parser = argparse.ArgumentParser(description='This program sends text messages to people using by using email.')
+    parser.add_argument('phone', action='store', metavar='phone',help="Phone number to send text message to.\n Phone "
+                                                            "number should have no spaces and be of format ##########")
+    parser.add_argument('-m', action='store', metavar = '', help='"Text message"')
+    parser.add_argument('-u', action='store', metavar = 'username', help='SMTP username')
+    #group = parser.add_mutually_exclusive_group()
+    group = parser.add_argument_group('carrier')
+    group.add_argument('-att', action='store_true', help='Send text message to AT&T Wireles')
+    group.add_argument('-cricket', action='store_true', help='Send text message to Cricket')
+    group.add_argument('-google', action='store_true', help='Send text message to Google')
+    group.add_argument('-sprint', action='store_true', help='Send text message to Sprint')
+    group.add_argument('-tmobile', action='store_true',  help='Send text message to T-Mobile')
+    group.add_argument('-verizon', action='store_true', help='Send text message to Verizon Wireless')
+    group.add_argument('-all', action='store_true', help='Send text message to all networks')
+    group2 = parser.add_argument_group('Notify options')
+    group2.add_argument('-n', action='store', metavar = 'File', help='Send notification if file changes')
+
+
+    #code.interact(local=dict(globals(), **locals())) # debug
+
+    if len(sys.argv)==1:
+        parser.print_help()
+        sys.exit(1)
+
+    options = parser.parse_args()
+
+    if not username and options.u is None and not password:
+        print( "\nPlease set SMTP settings inside %s before using or on command line\n"%sys.argv[0])
+        parser.print_help()
+        sys.exit(1)
+
+    if not username and options.u is not None:
+        username = options.u
+    else:
+        print( "Please set SMTP username!")
+        sys.exit(1)
+
+    if password == "":
+        from getpass import getpass
+        password = getpass("Password:")
+
+    #if is_valid_number(options.phone):
+    if checkvalidNumber(options.phone):
+
+
+            # set the phone number color to yellow so it stands out in the output
+            yellow_phone = colored(options.phone, 'yellow')
+
+            # check if any carriers are set to true
+            if True in vars(options).values():
+
+                    if options.att or options.all:    # determine carrier email to send to and color output
+                        carrier_email = '@txt.att.net'
+                        color_carrier = colored("AT&T", 'blue')
+                        if options.m is not None:
+                                if options.n is not None:
+                                    watch_file = options.n
+                                    # also call custom action function
+                                    watcher = Watcher(watch_file)
+                                    watcher.watch()  # start the watch going
+                                else:
+                                    send_email(options.phone, carrier_email, options.m)
+                        else:
+                                carrier_email = colored(carrier_email, 'blue')
+                                print("The %s gateway is: %s" % (color_carrier, carrier_email))
+                    if options.verizon or options.all:
+                            carrier_email = '@vtext.com'
+                            color_carrier = colored("Verizon", 'red')
+                            if options.m is not None:
+                                    send_email(options.phone, carrier_email, options.m)
+                            else:
+                                    carrier_email = colored(carrier_email, 'red')
+                                    print("The %s gateway is: %s" % (color_carrier, carrier_email))
+                    if options.tmobile or options.all:
+                            carrier_email = '@tmomail.net'
+                            color_carrier = colored("T-Mobile", 'magenta')
+                            if options.m is not None:
+                                    send_email(options.phone, carrier_email, options.m)
+                            else:
+                                    carrier_email = colored(carrier_email, 'magenta')
+                                    print("The %s gateway is: %s" % (color_carrier, carrier_email))
+                    if options.sprint or options.all:
+                            carrier_email = '@messaging.sprintpcs.com'
+                            color_carrier = colored("Sprint", 'yellow')
+                            if options.m is not None:
+                                    send_email(options.phone, carrier_email, options.m)
+                            else:
+                                    carrier_email = colored(carrier_email, 'yellow')
+                                    print("The %s gateway is: %s" % (color_carrier, carrier_email))
+                    if options.google or options.all:
+                            carrier_email = '@txt.voice.google.com'
+                            color_carrier = colored("Google", 'white')
+                            if options.m is not None:
+                                    send_email(options.phone, carrier_email, options.m)
+                            else:
+                                    carrier_email = colored(carrier_email, 'white')
+                                    print("The %s gateway is: %s" % (color_carrier, carrier_email))
+                    if options.cricket or options.all:
+                            carrier_email = '@sms.cricketwireless.net'
+                            color_carrier = colored("Cricket", 'green')
+                            if options.m is not None:
+                                    send_email(options.phone, carrier_email, options.m)
+                            else:
+                                    carrier_email = colored(carrier_email, 'green')
+                                    print("The %s gateway is: %s" % (color_carrier, carrier_email))
+
+                    # exit program normally
+                    sys.exit(1)
+            #code.interact(local=dict(globals(), **locals())) # debug
+            elif options.m is not None:
+                    cprint('Options Error: ', 'red', end='')  # print out carrier information 
+                    print( "The -m option requires a carrier to be set" )
+                    sys.exit(1)
+            else:
+                    cprint('Usage Error: ', 'red', end='')  # print out carrier information 
+                    print( "Please choose carrier option" )
+                    sys.exit(1)
+    else:
+        #cprint('[+] ', 'red', attrs=['bold'], end='')  # print success
+            cprint('Number Error: ', 'red', end='')  # print out carrier information 
+            cprint("Sorry that phone number is not in the correct format ex: 1234567890 ")
+            sys.exit(1)
