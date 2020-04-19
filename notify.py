@@ -113,6 +113,21 @@ def send_email(number, carrier_email, message):
         
 if __name__ == "__main__":
     # executes only if run as a script
+
+    banner = """
+        888b    888          888    d8b  .d888
+        8888b   888          888    Y8P d88P"
+        88888b  888          888        888
+        888Y88b 888  .d88b.  888888 888 888888 888  888
+        888 Y88b888 d88""88b 888    888 888    888  888
+        888  Y88888 888  888 888    888 888    888  888
+        888   Y8888 Y88..88P Y88b.  888 888    Y88b 888
+        888    Y888  "Y88P"   "Y888 888 888     "Y88888
+                                                    888
+                                               Y8b d88P
+                                                "Y88P"
+    """
+
     
     # SMTP settings server and credentials
     #################################################################
@@ -128,7 +143,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='This program sends text messages to people using by using email.')
     parser.add_argument('phone', action='store', metavar='phone',help="Phone number to send text message to.\n Phone "
                                                             "number should have no spaces and be of format ##########")
-    parser.add_argument('-m', action='store', metavar = '', help='"Text message"')
+    parser.add_argument('-m', action='store', metavar = '"msg"', help='Text message')
     parser.add_argument('-u', action='store', metavar = 'username', help='SMTP username')
     #group = parser.add_mutually_exclusive_group()
     group = parser.add_argument_group('carrier')
@@ -146,6 +161,7 @@ if __name__ == "__main__":
     #code.interact(local=dict(globals(), **locals())) # debug
 
     if len(sys.argv)==1:
+        print(banner)
         parser.print_help()
         sys.exit(1)
 
