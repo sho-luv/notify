@@ -1,3 +1,28 @@
+<p align="center">
+
+```
+                                 888b    888          888    d8b  .d888
+                                 8888b   888          888    Y8P d88P"
+                                 88888b  888          888        888
+                                 888Y88b 888  .d88b.  888888 888 888888 888  888
+                                 888 Y88b888 d88""88b 888    888 888    888  888
+                                 888  Y88888 888  888 888    888 888    888  888
+                                 888   Y8888 Y88..88P Y88b.  888 888    Y88b 888
+                                 888    Y888  "Y88P"   "Y888 888 888     "Y88888
+                                                                             888
+                                                                        Y8b d88P
+                                                                         "Y88P"
+```
+</p>
+
+<h4 align="center">Gmail Email Enumeration</h4>
+<p align="center">
+  <a href="https://twitter.com/sho_luv">
+    <img src="https://img.shields.io/badge/Twitter-%40sho_luv-blue.svg">
+  </a>
+</p>
+
+
 # notify.py
 
 This is a python script for sending text message via the ISP's email gateway to a persons phone in the form of email to text.
