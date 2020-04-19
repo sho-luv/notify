@@ -172,9 +172,9 @@ if __name__ == "__main__":
         parser.print_help()
         sys.exit(1)
 
-    if not username and options.u is not None:
+    if username == "" and options.u is not None:
         username = options.u
-    else:
+    elif username == "" and options.u is None:
         print( "Please set SMTP username!")
         sys.exit(1)
 
