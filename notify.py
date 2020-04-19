@@ -5,6 +5,7 @@
 
 import time
 import argparse # Parser for command-line options, arguments and sub-commands
+import sqlite3 # Check SQLite database for changes in table
 import smtplib	# SMTP protocol client
 import code # used for debugging with the command "code.interact(local=dict(globals(), **locals()))
 import sys # used sys to have clean exits of the program
@@ -28,27 +29,47 @@ class Watcher(object):
     refresh_delay_secs = 1
 
     # Constructor
-    def __init__(self, watch_file, call_func_on_change=None, *args, **kwargs):
+    def __init__(self, watch_file, watch_sqldb, call_func_on_change=None, *args, **kwargs):
         self._cached_stamp = 0
         self.filename = watch_file
+        self.sqlfile = sqlfile
         self.call_func_on_change = call_func_on_change
         self.args = args
         self.kwargs = kwargs
 
+
     # Look for changes
     def look(self):
-        stamp = os.stat(self.filename).st_mtime
-        if stamp != self._cached_stamp:
-            self._cached_stamp = stamp
-            # File has changed, so do something...
+        if self.filename is not None:
+            stamp = os.stat(self.filename).st_mtime
+            if stamp != self._cached_stamp:
+                self._cached_stamp = stamp
+                # File has changed, so do something...
 
-            if self.call_func_on_change is None:
-                self.call_func_on_change = "Something"
-                msg = "Notification set to watch file: " + options.n
-                cprint('[+] ', 'green', attrs=['bold'], end='')  # print success
-                cprint(msg,'white') 
-            else:
-                send_email(options.phone, carrier_email, options.m)
+                if self.call_func_on_change is None:
+                    self.call_func_on_change = "Something"
+                    msg = "Notification set to watch file: " + options.file
+                    cprint('[+] ', 'green', attrs=['bold'], end='')  # print success
+                    cprint(msg,'white') 
+                else:
+                    send_email(options.phone, carrier_email, options.m)
+        if self.sqlfile is not None:
+            conn = sqlite3.connect(self.sqlfile)
+            c = conn.cursor()
+            c.execute('SELECT count(*) FROM {tn}'. format(tn=options.table))
+            all_rows = c.fetchall()
+            stamp = all_rows[0][0]
+            if stamp != self._cached_stamp:
+                self._cached_stamp = stamp
+                # File has changed, so do something...
+
+                if self.call_func_on_change is None:
+                    self.call_func_on_change = "Something"
+                    msg = "Notification set to watch file: " + options.sqlite
+                    cprint('[+] ', 'green', attrs=['bold'], end='')  # print success
+                    cprint(msg,'white') 
+                else:
+                    send_email(options.phone, carrier_email, options.m)
 
     # Keep watching in a loop        
     def watch(self):
@@ -155,7 +176,9 @@ if __name__ == "__main__":
     group.add_argument('-verizon', action='store_true', help='Send text message to Verizon Wireless')
     group.add_argument('-all', action='store_true', help='Send text message to all networks')
     group2 = parser.add_argument_group('Notify options')
-    group2.add_argument('-n', action='store', metavar = 'File', help='Send notification if file changes')
+    group2.add_argument('-file', action='store', metavar = 'File', help='Send notification if file changes')
+    group2.add_argument('-sqlite', action='store', metavar = 'sqlite.db', help='Send notification if table in sqlite.db changes also requires -table option')
+    group2.add_argument('-table', action='store', metavar = 'table_name', help='Send notification if table in sqlite.db changes')
 
 
     #code.interact(local=dict(globals(), **locals())) # debug
@@ -182,6 +205,16 @@ if __name__ == "__main__":
         from getpass import getpass
         password = getpass("Password:")
 
+    if options.sqlite is not None and options.table is not None:
+        sqlfile = options.sqlite
+        sqltable = options.table
+    elif options.sqlite is not None and options.table is None:
+        print("sqlite option requires table_name to monitor")
+        sys.exit(1)
+    elif options.sqlite is None and options.table is not None:
+        print("table_name option requires sqlite.db to monitor")
+        sys.exit(1)
+
     #if is_valid_number(options.phone):
     if checkvalidNumber(options.phone):
 
@@ -196,10 +229,15 @@ if __name__ == "__main__":
                         carrier_email = '@txt.att.net'
                         color_carrier = colored("AT&T", 'blue')
                         if options.m is not None:
-                                if options.n is not None:
-                                    watch_file = options.n
+                                if options.file is not None:
+                                    watch_file = options.file
                                     # also call custom action function
                                     watcher = Watcher(watch_file)
+                                    watcher.watch()  # start the watch going
+                                elif options.sqlite is not None:
+                                    watch_sqldb = options.sqlite
+                                    # also call custom action function
+                                    watcher = Watcher(None,watch_sqldb)
                                     watcher.watch()  # start the watch going
                                 else:
                                     send_email(options.phone, carrier_email, options.m)
