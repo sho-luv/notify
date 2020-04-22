@@ -173,7 +173,7 @@ if __name__ == "__main__":
     from_email = 'notify@computer.com'
     email_subject = 'notify.py'
     username = ''    		# username
-    password = 'test' # password 
+    password = '' # password 
     #################################################################
 
 
