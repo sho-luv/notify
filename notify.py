@@ -26,50 +26,66 @@ from termcolor import colored, cprint
 
 class Watcher(object):
     running = True
-    refresh_delay_secs = 1
+    refresh_delay_secs = 2 
 
     # Constructor
     def __init__(self, watch_file, watch_sqldb, call_func_on_change=None, *args, **kwargs):
         self._cached_stamp = 0
         self.filename = watch_file
-        self.sqlfile = sqlfile
+        self.sqlfile = watch_sqldb
         self.call_func_on_change = call_func_on_change
         self.args = args
         self.kwargs = kwargs
 
-
     # Look for changes
     def look(self):
-        if self.filename is not None:
-            stamp = os.stat(self.filename).st_mtime
-            if stamp != self._cached_stamp:
-                self._cached_stamp = stamp
-                # File has changed, so do something...
+        try:
+            if self.filename is not None:
+                stamp = os.stat(self.filename).st_mtime
+                if stamp != self._cached_stamp:
+                    self._cached_stamp = stamp
+                    # File has changed, so do something...
 
-                if self.call_func_on_change is None:
-                    self.call_func_on_change = "Something"
-                    msg = "Notification set to watch file: " + options.file
-                    cprint('[+] ', 'green', attrs=['bold'], end='')  # print success
-                    cprint(msg,'white') 
-                else:
-                    send_email(options.phone, carrier_email, options.m)
-        if self.sqlfile is not None:
-            conn = sqlite3.connect(self.sqlfile)
-            c = conn.cursor()
-            c.execute('SELECT count(*) FROM {tn}'. format(tn=options.table))
-            all_rows = c.fetchall()
-            stamp = all_rows[0][0]
-            if stamp != self._cached_stamp:
-                self._cached_stamp = stamp
-                # File has changed, so do something...
+                    if self.call_func_on_change is None:
+                        self.call_func_on_change = "Something"
+                        msg = "Notification set to watch file: " + options.file
+                        cprint('[+] ', 'green', attrs=['bold'], end='')  # print success
+                        cprint(msg,'white') 
+                    else:
+                        send_email(options.phone, carrier_email, options.m)
+            if self.sqlfile is not None:
+                try:
+                    # note: if there are "Database error: unable to open database file"
+                    # errors this is due to the sqlite database being locked by another
+                    # process. By default connections will wait 5 seconds befor timeouts
+                    # with database locked errors. To avoid this we can increse the
+                    # timeout from the default of 5 seconds = 5000 to something like 
+                    # 10 seconds or 10000 to avoid thees database locked errors
+                    conn = sqlite3.connect(self.sqlfile, timeout=200000)
+                    c = conn.cursor()
+                    c.execute('SELECT count(*) FROM {tn}'. format(tn=options.table))
+                    all_rows = c.fetchall()
+                    stamp = all_rows[0][0]
 
-                if self.call_func_on_change is None:
-                    self.call_func_on_change = "Something"
-                    msg = "Notification set to watch file: " + options.sqlite
-                    cprint('[+] ', 'green', attrs=['bold'], end='')  # print success
-                    cprint(msg,'white') 
-                else:
-                    send_email(options.phone, carrier_email, options.m)
+                    if stamp != self._cached_stamp:
+                        self._cached_stamp = stamp
+                        # File has changed, so do something...
+
+                        if self.call_func_on_change is None:
+                            self.call_func_on_change = "Something"
+                            msg = "Notification set to watch file: " + options.sqlite
+                            cprint('[+] ', 'green', attrs=['bold'], end='')  # print success
+                            cprint(msg,'white') 
+                        else:
+                            send_email(options.phone, carrier_email, options.m)
+                except sqlite3.Error as e:
+                    print("Database error: %s" % e)
+                except Exception as e:
+                    print("Exception in _query: %s" % e)
+        except AttributeError as e:
+            print(e)
+            print("Unhandled exception in look function:", sys.exc_info()[0])
+            exit()
 
     # Keep watching in a loop        
     def watch(self):
@@ -87,7 +103,7 @@ class Watcher(object):
                 print(e)
                 break
             except:
-                print('Unhandled error: %s' % sys.exc_info()[0])
+                print('Watch Unhandled error: %s' % sys.exc_info()[0])
 
 
 def is_valid_number(phone_number):
@@ -154,7 +170,7 @@ if __name__ == "__main__":
     #################################################################
     smtp_server = 'mail.smtp.com'	# gmail smtp: smtp.gmail.com								
     smtp_port = '2525'				# gmail port: 587
-    from_email = 'your@computer.com'
+    from_email = 'notify@computer.com'
     email_subject = 'notify.py'
     username = ''    		# username
     password = '' # password 
@@ -218,7 +234,6 @@ if __name__ == "__main__":
     #if is_valid_number(options.phone):
     if checkvalidNumber(options.phone):
 
-
             # set the phone number color to yellow so it stands out in the output
             yellow_phone = colored(options.phone, 'yellow')
 
@@ -229,61 +244,116 @@ if __name__ == "__main__":
                         carrier_email = '@txt.att.net'
                         color_carrier = colored("AT&T", 'blue')
                         if options.m is not None:
-                                if options.file is not None:
-                                    watch_file = options.file
-                                    # also call custom action function
-                                    watcher = Watcher(watch_file)
-                                    watcher.watch()  # start the watch going
-                                elif options.sqlite is not None:
-                                    watch_sqldb = options.sqlite
-                                    # also call custom action function
-                                    watcher = Watcher(None,watch_sqldb)
-                                    watcher.watch()  # start the watch going
-                                else:
-                                    send_email(options.phone, carrier_email, options.m)
+                            if options.file is not None:
+                                watch_file = options.file
+                                # also call custom action function
+                                watcher = Watcher(watch_file,None )
+                                watcher.watch()  # start the watch going
+                            elif options.sqlite is not None:
+                                watch_sqldb = options.sqlite
+                                # also call custom action function
+                                watcher = Watcher(None,watch_sqldb)
+                                watcher.watch()  # start the watch going
+                            else:
+                                send_email(options.phone, carrier_email, options.m)
                         else:
-                                carrier_email = colored(carrier_email, 'blue')
-                                print("The %s gateway is: %s" % (color_carrier, carrier_email))
+                            carrier_email = colored(carrier_email, 'blue')
+                            print("The %s gateway is: %s" % (color_carrier, carrier_email))
                     if options.verizon or options.all:
-                            carrier_email = '@vtext.com'
-                            color_carrier = colored("Verizon", 'red')
-                            if options.m is not None:
-                                    send_email(options.phone, carrier_email, options.m)
+                        carrier_email = '@vtext.com'
+                        color_carrier = colored("Verizon", 'red')
+                        if options.m is not None:
+                            if options.file is not None:
+                                watch_file = options.file
+                                # also call custom action function
+                                watcher = Watcher(watch_file,None )
+                                watcher.watch()  # start the watch going
+                            elif options.sqlite is not None:
+                                watch_sqldb = options.sqlite
+                                # also call custom action function
+                                watcher = Watcher(None,watch_sqldb)
+                                watcher.watch()  # start the watch going
                             else:
-                                    carrier_email = colored(carrier_email, 'red')
-                                    print("The %s gateway is: %s" % (color_carrier, carrier_email))
+                                send_email(options.phone, carrier_email, options.m)
+                        else:
+                            carrier_email = colored(carrier_email, 'red')
+                            print("The %s gateway is: %s" % (color_carrier, carrier_email))
                     if options.tmobile or options.all:
-                            carrier_email = '@tmomail.net'
-                            color_carrier = colored("T-Mobile", 'magenta')
-                            if options.m is not None:
-                                    send_email(options.phone, carrier_email, options.m)
+                        carrier_email = '@tmomail.net'
+                        color_carrier = colored("T-Mobile", 'magenta')
+                        if options.m is not None:
+                            if options.file is not None:
+                                watch_file = options.file
+                                # also call custom action function
+                                watcher = Watcher(watch_file,None )
+                                watcher.watch()  # start the watch going
+                            elif options.sqlite is not None:
+                                watch_sqldb = options.sqlite
+                                # also call custom action function
+                                watcher = Watcher(None,watch_sqldb)
+                                watcher.watch()  # start the watch going
                             else:
-                                    carrier_email = colored(carrier_email, 'magenta')
-                                    print("The %s gateway is: %s" % (color_carrier, carrier_email))
+                                send_email(options.phone, carrier_email, options.m)
+                        else:
+                            carrier_email = colored(carrier_email, 'magenta')
+                            print("The %s gateway is: %s" % (color_carrier, carrier_email))
                     if options.sprint or options.all:
-                            carrier_email = '@messaging.sprintpcs.com'
-                            color_carrier = colored("Sprint", 'yellow')
-                            if options.m is not None:
-                                    send_email(options.phone, carrier_email, options.m)
+                        carrier_email = '@messaging.sprintpcs.com'
+                        color_carrier = colored("Sprint", 'yellow')
+                        if options.m is not None:
+                            if options.file is not None:
+                                watch_file = options.file
+                                # also call custom action function
+                                watcher = Watcher(watch_file,None )
+                                watcher.watch()  # start the watch going
+                            elif options.sqlite is not None:
+                                watch_sqldb = options.sqlite
+                                # also call custom action function
+                                watcher = Watcher(None,watch_sqldb)
+                                watcher.watch()  # start the watch going
                             else:
-                                    carrier_email = colored(carrier_email, 'yellow')
-                                    print("The %s gateway is: %s" % (color_carrier, carrier_email))
+                                send_email(options.phone, carrier_email, options.m)
+                        else:
+                            carrier_email = colored(carrier_email, 'yellow')
+                            print("The %s gateway is: %s" % (color_carrier, carrier_email))
                     if options.google or options.all:
-                            carrier_email = '@txt.voice.google.com'
-                            color_carrier = colored("Google", 'white')
-                            if options.m is not None:
-                                    send_email(options.phone, carrier_email, options.m)
+                        carrier_email = '@txt.voice.google.com'
+                        color_carrier = colored("Google", 'white')
+                        if options.m is not None:
+                            if options.file is not None:
+                                watch_file = options.file
+                                # also call custom action function
+                                watcher = Watcher(watch_file,None )
+                                watcher.watch()  # start the watch going
+                            elif options.sqlite is not None:
+                                watch_sqldb = options.sqlite
+                                # also call custom action function
+                                watcher = Watcher(None,watch_sqldb)
+                                watcher.watch()  # start the watch going
                             else:
-                                    carrier_email = colored(carrier_email, 'white')
-                                    print("The %s gateway is: %s" % (color_carrier, carrier_email))
+                                send_email(options.phone, carrier_email, options.m)
+                        else:
+                            carrier_email = colored(carrier_email, 'white')
+                            print("The %s gateway is: %s" % (color_carrier, carrier_email))
                     if options.cricket or options.all:
-                            carrier_email = '@sms.cricketwireless.net'
-                            color_carrier = colored("Cricket", 'green')
-                            if options.m is not None:
-                                    send_email(options.phone, carrier_email, options.m)
+                        carrier_email = '@sms.cricketwireless.net'
+                        color_carrier = colored("Cricket", 'green')
+                        if options.m is not None:
+                            if options.file is not None:
+                                watch_file = options.file
+                                # also call custom action function
+                                watcher = Watcher(watch_file,None )
+                                watcher.watch()  # start the watch going
+                            elif options.sqlite is not None:
+                                watch_sqldb = options.sqlite
+                                # also call custom action function
+                                watcher = Watcher(None,watch_sqldb)
+                                watcher.watch()  # start the watch going
                             else:
-                                    carrier_email = colored(carrier_email, 'green')
-                                    print("The %s gateway is: %s" % (color_carrier, carrier_email))
+                                send_email(options.phone, carrier_email, options.m)
+                        else:
+                            carrier_email = colored(carrier_email, 'green')
+                            print("The %s gateway is: %s" % (color_carrier, carrier_email))
 
                     # exit program normally
                     sys.exit(1)
