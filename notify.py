@@ -317,7 +317,7 @@ if __name__ == "__main__":
                             carrier_email = colored(carrier_email, 'yellow')
                             print("The %s gateway is: %s" % (color_carrier, carrier_email))
                     if options.google or options.all:
-                        carrier_email = '@txt.voice.google.com'
+                        carrier_email = '@msg.fi.google.com'
                         color_carrier = colored("Google", 'white')
                         if options.m is not None:
                             if options.file is not None:
