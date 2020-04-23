@@ -31,33 +31,36 @@ Additionally this script can be used to monitor a change in modification time (m
 
 ## Usage of notify.py
 ```
-usage: notify.py [-h] [-m] [-u username] [-att] [-cricket] [-google] [-sprint]
-                 [-tmobile] [-verizon] [-all] [-n File]
+usage: notify.py [-h] [-m "msg"] [-u username] [-att] [-cricket] [-google]
+                 [-sprint] [-tmobile] [-verizon] [-all] [-file File]
+                 [-sqlite sqlite.db] [-table table_name]
                  phone
 
 This program sends text messages to people using by using email.
 
 positional arguments:
-  phone        Phone number to send text message to. Phone number should have
-               no spaces and be of format ##########
+  phone              Phone number to send text message to. Phone number should
+                     have no spaces and be of format ##########
 
 optional arguments:
-  -h, --help   show this help message and exit
-  -m           "Text message"
-  -u username  SMTP username
+  -h, --help         show this help message and exit
+  -m "msg"           Text message
+  -u username        SMTP username
 
 carrier:
-  -att         Send text message to AT&T Wireles
-  -cricket     Send text message to Cricket
-  -google      Send text message to Google
-  -sprint      Send text message to Sprint
-  -tmobile     Send text message to T-Mobile
-  -verizon     Send text message to Verizon Wireless
-  -all         Send text message to all networks
+  -att               Send text message to AT&T Wireles
+  -cricket           Send text message to Cricket
+  -google            Send text message to Google
+  -sprint            Send text message to Sprint
+  -tmobile           Send text message to T-Mobile
+  -verizon           Send text message to Verizon Wireless
+  -all               Send text message to all networks
 
 Notify options:
-  -n File      Send notification if file changes
-
+  -file File         Send notification if file changes
+  -sqlite sqlite.db  Send notification if table in sqlite.db changes also
+                     requires -table option
+  -table table_name  Send notification if table in sqlite.db changes
 
 ```
 ## Example of notify.py sending text message
@@ -75,9 +78,17 @@ The logic in sending it to all carriers is that its going to find its way to the
 
 ## Example of notify.py monitoring file
 ```
-python notify.py xxxxxxxxxx -att -m "File has changed" -n requirements.txt -u <username>
+python notify.py xxxxxxxxxx -att -m "File has changed" -file requirements.txt -u <username>
 Password:
 [+] Notification set to watch file: requirements.txt
 [+] Apr 17 05:37:05  Message sent to xxxxxxxxxx on the AT&T network
+
+```
+## Example of notify.py monitoring file
+```
+python notify.py xxxxxxxxxx -google -sqlite file.db -table admins -m "File has changed" -u <username>
+Password:
+[+] Notification set to watch file: file.db
+[+] Apr 16 06:24:09  Message sent to xxxxxxxxxx on the Google network
 
 ```
