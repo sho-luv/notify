@@ -3,18 +3,21 @@
 
 </p>
 
-<h4 align="center">Gmail Email Enumeration</h4>
+<h4 align="center">Notification Application</h4>
 <p align="center">
   <a href="https://twitter.com/sho_luv">
-    <img src="https://img.shields.io/badge/Twitter-%40sho_luv-blue.svg">
+  <img src="https://img.shields.io/badge/Twitter-%40sho_luv-blue.svg">
   </a>
 </p>
 
 
 # notify.py
 
-This is a python script for sending text message via the ISP's email gateway to a persons phone in the form of email to text.
-Additionally this script can be used to monitor a change in modification time (mtime) of a specified file.
+This is a python script for sending text message via the ISP's email gateway to a phone number in the form of email to text.
+Additionally this script can be used to monitor a changes in a file. Currently it supports:
+
+- modification time (mtime) of a specified file with the -file flag
+- sqlite database table row count. If the count changes a notification is sent with the -sqlite and -table flags
 
 
 ## Usage of notify.py
